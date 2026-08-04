@@ -43,9 +43,11 @@ Das Bindeglied zwischen „wer darf überhaupt in die Umgebung" (Sicherheitsgrup
 |---|---|
 | Entra-ID-Sicherheitsgruppen anlegen/bearbeiten | Mind. **Groups Administrator** oder **User Administrator** in Microsoft Entra ID (Global Administrator geht auch) |
 | Power-Platform-Umgebungen anlegen, Sicherheitsgruppe zuweisen | **Power Platform Administrator**, **Dynamics 365 Administrator** oder **Global Administrator** (Entra-Rolle) |
-| Dataverse-Gruppenteams anlegen, Sicherheitsrollen zuweisen | **System Administrator** in der jeweiligen Umgebung (wird i. d. R. automatisch an die Person vergeben, die die Umgebung erstellt hat) |
+| Dataverse-Gruppenteams anlegen, Sicherheitsrollen zuweisen | **System Administrator** in der jeweiligen Umgebung |
 
-> **Wichtig:** Die tenant-weiten Entra-Rollen **Global Administrator**, **Power Platform Administrator** und **Dynamics 365 Administrator** müssen laut Microsoft-Doku *direkt* an einzelne Benutzer:innen vergeben werden — **nicht** über eine Sicherheitsgruppe. Das betrifft nur diese drei tenant-weiten Admin-Rollen, nicht die umgebungsbezogene Dataverse-Rolle *System Administrator*, die wir weiter unten sehr wohl per Gruppe vergeben. Mehr dazu in Abschnitt 9 (optional).
+> **Wichtig zur Selbstberechtigung:** Verlasst euch **nicht** darauf, dass die Person, die eine Umgebung anlegt, automatisch als System Administrator in dieser Umgebung eingetragen wird — Microsoft hat die automatische Rollenvergabe an Tenant-Admins zuletzt bewusst eingeschränkt (*„Previously, Microsoft Entra ID admins … were automatically assigned the System Administrator role in Dataverse. This is no longer the case."*, [Assign security roles](https://learn.microsoft.com/en-us/power-platform/admin/assign-security-roles)). Prüft nach dem Anlegen jeder Umgebung explizit unter **Settings → Users + permissions → Users**, ob eure ausführende Person bereits die Rolle *System Administrator* hat; falls nicht, kann sich eine Person mit der tenant-weiten Rolle **Power Platform Administrator** selbst die Rolle zuweisen (bzw. ein:e bestehende:r System Administrator vergibt sie manuell).
+>
+> Die tenant-weiten Entra-Rollen **Global Administrator**, **Power Platform Administrator** und **Dynamics 365 Administrator** müssen laut Microsoft-Doku *direkt* an einzelne Benutzer:innen vergeben werden — **nicht** über eine Sicherheitsgruppe. Das betrifft nur diese drei tenant-weiten Admin-Rollen, nicht die umgebungsbezogene Dataverse-Rolle *System Administrator*, die wir weiter unten sehr wohl per Gruppe vergeben. Mehr dazu in Abschnitt 9 (optional).
 
 ### 2.2 Lizenzierung (kurzer Überblick, keine Tiefenprüfung)
 
@@ -157,7 +159,7 @@ PP-Admins-AllEnv     ← als "Sicherheitsgruppe" DIREKT an der DEV-Umgebung hint
    | Name | `Contoso – Power Platform (DEV)` |
    | Region | passende Region eures Tenants |
    | Get new features early | nach Präferenz (für DEV oft sinnvoll: `Yes`, um neue Features früh zu testen) |
-   | Type | **Sandbox** (empfohlen für DEV — kann später einfach zurückgesetzt/kopiert/gesichert werden, ohne PROD zu beeinflussen) |
+   | Type | **Sandbox** (empfohlen für DEV — nichtproduktive Umgebungen mit Reset- und Copy-Funktion, getrennt von der Produktivumgebung; Backup/Restore steht in beiden Typen zur Verfügung, i. d. R. mit kürzerer Aufbewahrung als bei Production) |
    | Purpose | z. B. „Entwicklungs- und Testumgebung für Power-Automate-/Power-Apps-Lösungen" |
    | Add a Dataverse data store | **Yes** (diese Einstellung ist unumkehrbar) |
    | Pay-as-you-go with Azure | nur falls ihr Pay-as-you-go nutzt, sonst `No` |
@@ -272,19 +274,32 @@ Die Dataverse-Rolle **System Administrator** ist die höchste vordefinierte Sich
 
 ## 9. (Optional) Tenant-weite Power-Platform-Admin-Rechte für die Admin-Gruppe
 
-Was wir bisher eingerichtet haben, gibt der Admins-Gruppe **volle Kontrolle innerhalb von DEV und PROD** (Dataverse-Rolle *System Administrator*). Das ist **nicht dasselbe** wie die tenant-weite Entra-Rolle **Power Platform Administrator**, die zusätzlich erlaubt:
+Was wir bisher eingerichtet haben, gibt der Admins-Gruppe **volle Kontrolle innerhalb von DEV und PROD** (Dataverse-Rolle *System Administrator*, zugewiesen über die Gruppenteams aus Schritt 8). Das ist eine bewusst andere, engere Berechtigungsebene als die tenant-weite Entra-Rolle **Power Platform Administrator**, die zusätzlich erlaubt:
 
-- neue Umgebungen anzulegen oder zu löschen,
-- tenant-weite DLP-Richtlinien zu verwalten,
-- alle Umgebungen im Tenant zu sehen (auch solche, in denen die Person keine explizite Rolle hat).
+- neue Umgebungen im gesamten Tenant anzulegen, zu löschen, zu sichern/wiederherzustellen oder zu kopieren,
+- tenant-weite und umgebungsbezogene Daten-/DLP-Richtlinien zu verwalten,
+- **jede** Umgebung im Tenant zu verwalten — Power-Platform-Administrator:innen sind laut Microsoft von der Sicherheitsgruppen-Einschränkung einer Umgebung ausdrücklich **nicht betroffen** und können Umgebungen auch verwalten, ohne Mitglied der jeweiligen Sicherheitsgruppe zu sein.
 
-Falls eure Admins auch diese tenant-weiten Rechte brauchen sollen: Diese Entra-Rolle muss laut Microsoft **direkt an einzelne Benutzerkonten** vergeben werden, nicht an eine Sicherheitsgruppe:
+Diese drei tenant-weiten Rollen (**Global Administrator**, **Power Platform Administrator**, **Dynamics 365 Administrator**) unterscheiden sich technisch von der umgebungsbezogenen Dataverse-Rolle *System Administrator* aus Schritt 8 und müssen laut Microsoft **zwingend direkt an einzelne Benutzerkonten** vergeben werden — eine Vergabe über eine Sicherheitsgruppe wird nicht unterstützt:
 
-1. [Microsoft Entra Admin Center](https://entra.microsoft.com) → **Identity → Roles & admins → Roles & admins**.
-2. Rolle **Power Platform Administrator** suchen und öffnen.
-3. **+ Add assignments** → betreffende Einzelpersonen auswählen → zuweisen.
+> *„Global admin, Power Platform admin, and the Dynamics 365 admin roles must be directly assigned for a user. Role association through security groups is not supported."* — [Use service admin roles to manage your tenant](https://learn.microsoft.com/en-us/power-platform/admin/use-service-admin-role-manage-tenant)
 
-Dieser Schritt ist bewusst optional und nicht Teil des Kern-Setups, da er eine deutlich weiterreichende, tenant-globale Berechtigung darstellt und pro Person einzeln vergeben werden muss (kein Gruppen-Automatismus).
+**Wichtige Ergänzung, die leicht übersehen wird:** Das Zuweisen einer dieser drei tenant-weiten Rollen ersetzt **nicht** die Dataverse-Rolle *System Administrator* aus Schritt 8. Beide Ebenen sind unabhängig voneinander:
+
+> *„When the Dynamics 365 administrator, Power Platform administrator, or Global administrator role is assigned to a user in Microsoft Entra ID, the user is no longer automatically assigned to the system administrator role in environments."* — [Use service admin roles to manage your tenant](https://learn.microsoft.com/en-us/power-platform/admin/use-service-admin-role-manage-tenant)
+
+Mit anderen Worten: Auch wenn ihr diesen optionalen Schritt zusätzlich ausführt, bleibt Schritt 8 (Gruppenteams mit Rolle *System Administrator* in DEV und PROD) die Grundlage dafür, dass eure Admins-Gruppe tatsächlich mit den Daten in beiden Umgebungen arbeiten kann.
+
+**Vorgehen (dokumentierter Weg über das Microsoft 365 Admin Center):**
+
+1. Im [Microsoft 365 Admin Center](https://admin.microsoft.com) anmelden (mind. Rolle **Privileged Role Administrator**).
+2. **Users → Active users** öffnen, betreffende Person auswählen.
+3. Unter **Account → Roles** auf **Manage roles** klicken.
+4. **Show all by category** ausklappen.
+5. Unter der Kategorie **Collaboration** die Rolle **Power Platform administrator** (oder **Dynamics 365 administrator**) auswählen.
+6. **Save changes** klicken.
+
+Dieser Vorgang muss für **jede einzelne Person** wiederholt werden, die diese tenant-weite Rolle erhalten soll — es gibt keinen Gruppen-Automatismus. Deshalb bleibt dieser Schritt bewusst optional und außerhalb des Kern-Setups.
 
 ---
 
@@ -315,6 +330,8 @@ Für den vollständigen Governance-Ausbau nach diesem Kern-Setup, aber außerhal
 
 Diese Themen bauen direkt auf dem hier geschaffenen Fundament auf und lassen sich bei Bedarf in einem eigenen Folgedokument vertiefen.
 
+> **Klarstellung zur bereits existierenden Default-Umgebung:** Jeder Tenant hat automatisch eine **Default-Umgebung**, die von allen lizenzierten Nutzer:innen gemeinsam verwendet wird. Diese Anleitung fasst die Default-Umgebung bewusst nicht an — sie bleibt von `PP-Admins-AllEnv`/`PP-Users-PROD` komplett unberührt. Das ist auch technisch gar nicht anders möglich: *„Security groups can't be assigned to default and developer environment types."* ([Control user access to environments](https://learn.microsoft.com/en-us/power-platform/admin/control-user-access)) Wer die Default-Umgebung zusätzlich absichern will (z. B. für Citizen-Development-Zwecke), braucht dafür einen separaten Ansatz — siehe [Secure the default environment](https://learn.microsoft.com/en-us/power-platform/guidance/adoption/secure-default-environment).
+
 ---
 
 ## 12. Quellen
@@ -327,6 +344,8 @@ Diese Themen bauen direkt auf dem hier geschaffenen Fundament auf und lassen sic
 - [Assign security roles](https://learn.microsoft.com/en-us/power-platform/admin/assign-security-roles)
 - [How to manage groups (Microsoft Entra)](https://learn.microsoft.com/en-us/entra/fundamentals/how-to-manage-groups)
 - [Power Platform environments overview](https://learn.microsoft.com/en-us/power-platform/admin/environments-overview)
+- [Role-based security roles for Dataverse](https://learn.microsoft.com/en-us/power-platform/admin/database-security)
+- [Use service admin roles to manage your tenant](https://learn.microsoft.com/en-us/power-platform/admin/use-service-admin-role-manage-tenant)
 - [The admin center — Power Automate](https://learn.microsoft.com/en-us/power-automate/admin-center)
 
 **Lokale Projektdokumentation (Governance-Konzepte):**

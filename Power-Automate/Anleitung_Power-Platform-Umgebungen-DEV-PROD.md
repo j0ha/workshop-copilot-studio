@@ -111,6 +111,10 @@ Im Power Platform Admin Center kann pro Umgebung **genau eine** Sicherheitsgrupp
 
 Für **DEV** brauchen wir das nicht: Dort ist die einzige Zielgruppe `PP-Admins-AllEnv`, die kann direkt als Umgebungs-Sicherheitsgruppe hinterlegt werden (siehe Schritt 3 der Umgebungserstellung in Abschnitt 5).
 
+> **Wichtig — Richtung der Verschachtelung nicht vertauschen:** `PP-Admins-AllEnv` und `PP-Users-PROD` werden **als Mitglieder in** `PP-EnvAccess-PROD` **hinein**verschachtelt — nicht umgekehrt. Die Faustregel: Diejenige Gruppe, die **direkt** am Ziel (hier: der PROD-Umgebung) hängt, ist die „äußere“/Eltern-Gruppe. Wird eine andere Gruppe **als Mitglied dieser Eltern-Gruppe** hinzugefügt, erben alle Mitglieder der verschachtelten (Kind-)Gruppe automatisch den Zugriff der Eltern-Gruppe. Microsoft illustriert das Prinzip so:
+> *„we're adding 'MDM policy - West' to the 'MDM policy - All org' group. The 'MDM policy - West' group will have the same access as the 'MDM policy - All org' group."* — [How to manage groups](https://learn.microsoft.com/en-us/entra/fundamentals/how-to-manage-groups)
+> Übertragen auf unser Setup: `PP-EnvAccess-PROD` entspricht „All org“ (hängt direkt an PROD), `PP-Admins-AllEnv`/`PP-Users-PROD` entsprechen „West“ (werden hineinverschachtelt und erben dadurch PROD-Zugriff). Würde man es umgekehrt machen — `PP-EnvAccess-PROD` als Mitglied in `PP-Admins-AllEnv`/`PP-Users-PROD` einhängen — hätte das **keinen Effekt**: `PP-EnvAccess-PROD` hat ja keine eigenen direkten Mitglieder, die davon profitieren könnten, und die eigentlichen Admins/Anwender:innen würden weiterhin keinen PROD-Zugriff erhalten.
+
 **Vorgehen:**
 
 1. Gruppe wie in 3.1 anlegen:
